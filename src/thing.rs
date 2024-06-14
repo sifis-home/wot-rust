@@ -816,6 +816,35 @@ pub enum BoxedElemOrVec<T> {
     Vec(Vec<T>),
 }
 
+impl<T> BoxedElemOrVec<T> {
+    #[inline]
+    pub fn to_ref(&self) -> BoxedElemOrVecRef<'_, T> {
+        match self {
+            Self::Elem(elem) => BoxedElemOrVecRef::Elem(elem),
+            Self::Vec(vec) => BoxedElemOrVecRef::Vec(vec),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BoxedElemOrVecRef<'a, T> {
+    Elem(&'a T),
+    Vec(&'a [T]),
+}
+
+impl<'a, T> BoxedElemOrVecRef<'a, T> {
+    #[inline]
+    pub fn map<F, U>(self, mut f: F) -> BoxedElemOrVec<U>
+    where
+        F: FnMut(&'a T) -> U,
+    {
+        match self {
+            Self::Elem(elem) => BoxedElemOrVec::Elem(Box::new(f(elem))),
+            Self::Vec(vec) => BoxedElemOrVec::Vec(vec.iter().map(f).collect()),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct UncheckedArraySchema<DS, AS, OS> {
     pub(crate) items: Option<BoxedElemOrVec<UncheckedDataSchema<DS, AS, OS>>>,
